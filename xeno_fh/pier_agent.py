@@ -60,6 +60,7 @@ class Xeno(BaseInstalledAgent):
             config.write_text(common.models_json(spec))
             await self.exec_as_agent(environment, command=f"mkdir -p {common.CONFIG_DIR}")
             await environment.upload_file(config, f"{common.CONFIG_DIR}/models.json")
+        await common.upload_ca(environment)
         # On Runta the egress proxy writes the real Authorization header for
         # the provider host; the variable only has to be non-empty.
         key = self._get_env(route["key_env"]) or common.SECRET_STUB

@@ -20,6 +20,10 @@ REMOTE = "/installed-agent/xeno"
 LOG_NAME = "xeno.jsonl"
 STATE_DIR = "/logs/agent/xeno-state"
 CONFIG_DIR = "/logs/agent/xeno-config"
+# Runta's egress proxy re-signs TLS with a CA it regenerates on every restore,
+# so the task container is handed the host's current copy at trial time.
+HOST_CA = Path("/usr/local/share/ca-certificates/runta-egress.crt")
+REMOTE_CA = f"{REMOTE}/runta-egress.crt"
 # What Runta exposes in place of a stored secret; the proxy substitutes the value.
 SECRET_STUB = "runta-secret-stub"
 
@@ -80,11 +84,18 @@ def run_command(instruction: str, wire_model: str, max_turns: int, time_budget: 
     ]
     if time_budget:
         flags += ["--time-budget", str(time_budget)]
+    # Bun reads extra CAs from NODE_EXTRA_CA_CERTS; set only when the file exists.
+    ca = f'if [ -f {REMOTE_CA} ]; then export NODE_EXTRA_CA_CERTS={REMOTE_CA}; fi; '
     return (
-        f"mkdir -p {STATE_DIR} && "
+        f"mkdir -p {STATE_DIR} && {ca}"
         f"XENO_CONFIG_DIR={CONFIG_DIR} {REMOTE}/bun {cli} {' '.join(flags)} -p {shlex.quote(instruction)} "
         f"</dev/null 2>/logs/agent/xeno.stderr | tee /logs/agent/{LOG_NAME}"
     )
+
+
+async def upload_ca(environment) -> None:
+    if HOST_CA.exists():
+        await environment.upload_file(HOST_CA, REMOTE_CA)
 
 
 def usage_totals(log: Path) -> tuple[int, int, int, int]:
