@@ -27,17 +27,26 @@ class Xeno(BaseInstalledAgent):
         return f"cat {common.REMOTE}/VERSION"
 
     def install_spec(self) -> AgentInstallSpec:
-        # Declared for Pier's bookkeeping; install() below uploads instead of
-        # downloading, because trial egress is restricted.
+        # Pier's docker environment bakes these steps into the task image at
+        # build time -- before any upload exists -- and then treats the agent
+        # as preinstalled, skipping install(). So the build step only creates
+        # the directory; the staged files are uploaded in setup() instead.
         return AgentInstallSpec(agent_name=self.name(), version=self._version,
-                                steps=[InstallStep(user="agent", run=common.install_command())],
-                                verification_command=self.get_version_command())
+                                steps=[InstallStep(user="root", run=f"mkdir -p {common.REMOTE}")])
 
     async def install(self, environment: BaseEnvironment) -> None:
         await self.exec_as_root(environment, command=f"mkdir -p {common.REMOTE} && chmod 755 /installed-agent {common.REMOTE}")
         await environment.upload_dir(common.STAGE, common.REMOTE)
         await self.exec_as_root(environment, command=f"chmod -R a+rX {common.REMOTE}")
         await self.exec_as_agent(environment, command=common.install_command())
+        self._uploaded = True
+
+    async def setup(self, environment: BaseEnvironment) -> None:
+        self._uploaded = False
+        await super().setup(environment)
+        # Runs whether or not Pier considered the agent preinstalled.
+        if not self._uploaded:
+            await self.install(environment)
 
     def network_allowlist(self) -> NetworkAllowlist:
         route, _ = common.resolve(self.model_name)
