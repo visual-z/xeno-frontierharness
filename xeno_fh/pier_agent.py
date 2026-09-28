@@ -51,9 +51,9 @@ class Xeno(BaseInstalledAgent):
             config.write_text(common.models_json(spec))
             await self.exec_as_agent(environment, command=f"mkdir -p {common.CONFIG_DIR}")
             await environment.upload_file(config, f"{common.CONFIG_DIR}/models.json")
-        key = self._get_env(route["key_env"])
-        if not key:
-            raise ValueError(f"{route['key_env']} is not set for the agent")
+        # On Runta the egress proxy writes the real Authorization header for
+        # the provider host; the variable only has to be non-empty.
+        key = self._get_env(route["key_env"]) or common.SECRET_STUB
         env = self.build_process_env()
         env[route["key_env"]] = key
         await self.exec_as_agent(

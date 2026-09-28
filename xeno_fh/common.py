@@ -20,6 +20,8 @@ REMOTE = "/installed-agent/xeno"
 LOG_NAME = "xeno.jsonl"
 STATE_DIR = "/logs/agent/xeno-state"
 CONFIG_DIR = "/logs/agent/xeno-config"
+# What Runta exposes in place of a stored secret; the proxy substitutes the value.
+SECRET_STUB = "runta-secret-stub"
 
 # FrontierHarness model routes -> the xeno catalog entry that serves them.
 # The benchmark model is Kimi K3; `kimi-coding` is Kimi's coding endpoint,
