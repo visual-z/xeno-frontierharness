@@ -4,7 +4,7 @@
 # container downloads nothing: Bun for glibc and musl, and @visual-z/xeno
 # with its dependencies.
 set -euo pipefail
-XENO_VERSION=${XENO_VERSION:-0.1.2}
+XENO_VERSION=${XENO_VERSION:-0.1.3}
 BUN_VERSION=${BUN_VERSION:-1.3.10}
 STAGE=/work/xeno-stage
 ARCH=$(uname -m); case "$ARCH" in x86_64) B=x64 ;; aarch64|arm64) B=aarch64 ;; *) echo "unsupported arch $ARCH" >&2; exit 1 ;; esac
