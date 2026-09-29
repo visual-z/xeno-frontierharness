@@ -19,7 +19,17 @@ cp "$tmp/x-musl/bun-linux-$B-musl/bun" "$STAGE/bun-musl"
 chmod +x "$STAGE"/bun-*
 cd "$STAGE"
 printf '{"private":true,"dependencies":{"@visual-z/xeno":"%s"}}\n' "$XENO_VERSION" > package.json
-"$STAGE/bun-glibc" install --production
+# A version published minutes ago can be missing from the registry's cached
+# metadata. Wait for the uncached document to list it, then install without
+# bun's metadata cache; give up after ~5 minutes rather than stage a wrong version.
+for i in $(seq 1 30); do
+  curl -fsS "https://registry.npmjs.org/@visual-z%2fxeno?t=$(date +%s%N)" | grep -q "\"$XENO_VERSION\"" && break
+  sleep 10
+done
+for i in 1 2 3 4 5; do
+  "$STAGE/bun-glibc" install --production --no-cache && break
+  sleep 30
+done
 test -f "$STAGE/node_modules/@visual-z/xeno/src/apps/cli.ts"
 echo "$XENO_VERSION" > "$STAGE/VERSION"
 "$STAGE/bun-glibc" "$STAGE/node_modules/@visual-z/xeno/src/apps/cli.ts" --help </dev/null >/dev/null
